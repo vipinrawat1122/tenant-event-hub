@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -12,7 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Plus, Edit, Trash2, Eye, Code } from 'lucide-react';
 
 // Mock domains data
 const mockDomains = [
@@ -23,7 +32,8 @@ const mockDomains = [
     status: 'active',
     events: 12,
     users: 347,
-    createdAt: '2024-01-15'
+    createdAt: '2024-01-15',
+    hasCustomCode: true
   },
   {
     id: 2,
@@ -32,7 +42,8 @@ const mockDomains = [
     status: 'active',
     events: 8,
     users: 256,
-    createdAt: '2024-02-20'
+    createdAt: '2024-02-20',
+    hasCustomCode: false
   },
   {
     id: 3,
@@ -41,17 +52,21 @@ const mockDomains = [
     status: 'pending',
     events: 0,
     users: 0,
-    createdAt: '2024-12-01'
+    createdAt: '2024-12-01',
+    hasCustomCode: false
   }
 ];
 
 const DomainManagement = () => {
   const [domains] = useState(mockDomains);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState<any>(null);
   const [newDomain, setNewDomain] = useState({
     domain: '',
     brandName: '',
-    adminEmail: ''
+    adminEmail: '',
+    customCSS: '',
+    customJS: ''
   });
 
   const getStatusBadge = (status: string) => {
@@ -68,10 +83,17 @@ const DomainManagement = () => {
   };
 
   const handleCreateDomain = () => {
-    // Handle domain creation
     console.log('Creating domain:', newDomain);
     setShowCreateForm(false);
-    setNewDomain({ domain: '', brandName: '', adminEmail: '' });
+    setNewDomain({ domain: '', brandName: '', adminEmail: '', customCSS: '', customJS: '' });
+  };
+
+  const handleEditCustomCode = (domain: any) => {
+    setSelectedDomain({
+      ...domain,
+      customCSS: `/* Custom CSS for ${domain.domain} */\n.custom-header {\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n}`,
+      customJS: `// Custom JS for ${domain.domain}\nconsole.log('${domain.domain} custom scripts loaded');`
+    });
   };
 
   return (
@@ -94,25 +116,50 @@ const DomainManagement = () => {
             <CardTitle>Create New Domain</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <Input
-                placeholder="Domain (e.g., techfest.com)"
-                value={newDomain.domain}
-                onChange={(e) => setNewDomain({...newDomain, domain: e.target.value})}
-              />
-              <Input
-                placeholder="Brand Name"
-                value={newDomain.brandName}
-                onChange={(e) => setNewDomain({...newDomain, brandName: e.target.value})}
-              />
-              <Input
-                placeholder="Admin Email"
-                type="email"
-                value={newDomain.adminEmail}
-                onChange={(e) => setNewDomain({...newDomain, adminEmail: e.target.value})}
-              />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  placeholder="Domain (e.g., techfest.com)"
+                  value={newDomain.domain}
+                  onChange={(e) => setNewDomain({...newDomain, domain: e.target.value})}
+                />
+                <Input
+                  placeholder="Brand Name"
+                  value={newDomain.brandName}
+                  onChange={(e) => setNewDomain({...newDomain, brandName: e.target.value})}
+                />
+                <Input
+                  placeholder="Admin Email"
+                  type="email"
+                  value={newDomain.adminEmail}
+                  onChange={(e) => setNewDomain({...newDomain, adminEmail: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="customCSS">Custom CSS (Optional)</Label>
+                  <Textarea
+                    id="customCSS"
+                    placeholder="/* Enter custom CSS for this domain */"
+                    value={newDomain.customCSS}
+                    onChange={(e) => setNewDomain({...newDomain, customCSS: e.target.value})}
+                    className="min-h-[100px] font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customJS">Custom JavaScript (Optional)</Label>
+                  <Textarea
+                    id="customJS"
+                    placeholder="// Enter custom JavaScript for this domain"
+                    value={newDomain.customJS}
+                    onChange={(e) => setNewDomain({...newDomain, customJS: e.target.value})}
+                    className="min-h-[100px] font-mono text-sm"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-4">
               <Button onClick={handleCreateDomain}>Create Domain</Button>
               <Button variant="outline" onClick={() => setShowCreateForm(false)}>
                 Cancel
@@ -136,6 +183,7 @@ const DomainManagement = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Events</TableHead>
                 <TableHead>Users</TableHead>
+                <TableHead>Custom Code</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -148,6 +196,16 @@ const DomainManagement = () => {
                   <TableCell>{getStatusBadge(domain.status)}</TableCell>
                   <TableCell>{domain.events}</TableCell>
                   <TableCell>{domain.users}</TableCell>
+                  <TableCell>
+                    {domain.hasCustomCode ? (
+                      <Badge className="bg-blue-100 text-blue-800">
+                        <Code className="h-3 w-3 mr-1" />
+                        Custom
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Default</Badge>
+                    )}
+                  </TableCell>
                   <TableCell>{new Date(domain.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
@@ -157,6 +215,43 @@ const DomainManagement = () => {
                       <Button size="sm" variant="outline">
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEditCustomCode(domain)}
+                          >
+                            <Code className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Custom Code for {selectedDomain?.domain}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="editCustomCSS">Custom CSS</Label>
+                              <Textarea
+                                id="editCustomCSS"
+                                value={selectedDomain?.customCSS || ''}
+                                onChange={(e) => setSelectedDomain({...selectedDomain, customCSS: e.target.value})}
+                                className="min-h-[200px] font-mono text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="editCustomJS">Custom JavaScript</Label>
+                              <Textarea
+                                id="editCustomJS"
+                                value={selectedDomain?.customJS || ''}
+                                onChange={(e) => setSelectedDomain({...selectedDomain, customJS: e.target.value})}
+                                className="min-h-[200px] font-mono text-sm"
+                              />
+                            </div>
+                            <Button>Save Custom Code</Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                       <Button size="sm" variant="outline">
                         <Trash2 className="h-4 w-4" />
                       </Button>
